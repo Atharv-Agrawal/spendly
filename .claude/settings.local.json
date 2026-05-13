@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(python -m venv venv)",
-      "PowerShell(python app.py)"
+      "PowerShell(python app.py)",
+      "Bash(git push *)"
     ]
   }
 }
