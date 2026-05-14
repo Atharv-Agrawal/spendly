@@ -1,0 +1,354 @@
+ ▐▛███▜▌   Claude Code v2.1.140
+▝▜█████▛▘  Sonnet 4.6 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive\Desktop\expense-tracker
+
+  Opus 4.7 xhigh is now available! · /model to switch
+
+❯ /rename database setup 
+  ⎿  Session renamed to: database setup
+
+! git pull origin main                                                          
+  ⎿  From https://github.com/Atharv-Agrawal/spendly
+      * branch            main       -> FETCH_HEAD
+     Already up to date.
+
+! git checkout -b feature/database-setup                                        
+  ⎿  Switched to a new branch 'feature/database-setup'
+
+❯ /plan                                                                         
+  ⎿  Enabled plan mode
+
+❯ Read .claude/specs/01-database-setup.md and the existing database/db.py and   
+  app.py, then generate an implementation plan.Save this plan to                
+  .claude/plans/01-database-setup.md                                            
+
+● I'll explore the spec and existing code in parallel to build the plan.
+
+● Explore(Explore spec and existing database/app files)
+  ⎿  Done (3 tool uses · 23.5k tokens · 9s)
+  (ctrl+o to expand)
+
+● Let me read the actual file contents directly to ensure I have complete
+  details.
+
+  Read 3 files (ctrl+o to expand)
+
+● Now I have everything I need. Writing the plan file.
+
+● Updated plan
+  ⎿  /plan to preview
+
+● User approved Claude's plan
+  ⎿  Plan saved to: ~\.claude\plans\read-claude-specs-01-database-setup-md-a-wis
+     e-marshmallow.md · /plan to edit
+     Plan: Database Setup (Step 1)
+
+     Context
+
+     Spendly's database/db.py is a stub with no implementation. All future
+     features (auth, expenses) depend on a working SQLite layer. This plan
+     implements the three required functions and wires up startup initialization
+      in app.py, exactly as specified in .claude/specs/01-database-setup.md.
+
+     ---
+     Files to Change
+
+     - database/db.py — implement get_db(), init_db(), seed_db()
+     - app.py — add imports and call init_db() / seed_db() at startup
+
+     ---
+     Implementation
+
+     1. database/db.py
+
+     Imports needed:
+     import sqlite3
+     import os
+     from werkzeug.security import generate_password_hash
+
+     get_db()
+     - Open spendly.db in the project root (os.path.join(os.path.dirname(...), 
+     '..', 'spendly.db') or use app context — since this module has no Flask
+     dependency, resolve path relative to __file__)
+     - Set conn.row_factory = sqlite3.Row
+     - Execute PRAGMA foreign_keys = ON
+     - Return conn
+
+     init_db()
+     - Call get_db(), create both tables with CREATE TABLE IF NOT EXISTS:
+
+     CREATE TABLE IF NOT EXISTS users (
+         id           INTEGER PRIMARY KEY AUTOINCREMENT,
+         name         TEXT    NOT NULL,
+         email        TEXT    UNIQUE NOT NULL,
+         password_hash TEXT   NOT NULL,
+         created_at   TEXT    DEFAULT (datetime('now'))
+     );
+
+     CREATE TABLE IF NOT EXISTS expenses (
+         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+         user_id     INTEGER NOT NULL REFERENCES users(id),
+         amount      REAL    NOT NULL,
+         category    TEXT    NOT NULL,
+         date        TEXT    NOT NULL,
+         description TEXT,
+         created_at  TEXT    DEFAULT (datetime('now'))
+     );
+     - Commit and close connection
+
+     seed_db()
+     - Open connection via get_db()
+     - Check SELECT COUNT(*) FROM users — if > 0, return early
+     - Insert demo user: name="Demo User", email="demo@spendly.com", password
+     hashed from "demo123"
+     - Get the inserted user_id via cursor.lastrowid
+     - Insert 8 expenses (all parameterized), spread across May 2026, covering
+     all 7 categories:
+
+     ┌─────┬───────────────┬────────┬────────────┬──────────────────────┐
+     │  #  │   category    │ amount │    date    │     description      │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 1   │ Food          │ 12.50  │ 2026-05-01 │ Grocery run          │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 2   │ Transport     │ 35.00  │ 2026-05-03 │ Monthly bus pass     │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 3   │ Bills         │ 80.00  │ 2026-05-05 │ Electricity bill     │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 4   │ Health        │ 25.00  │ 2026-05-07 │ Pharmacy             │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 5   │ Entertainment │ 15.00  │ 2026-05-09 │ Netflix subscription │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 6   │ Shopping      │ 60.00  │ 2026-05-11 │ New shoes            │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 7   │ Other         │ 10.00  │ 2026-05-13 │ Miscellaneous        │
+     ├─────┼───────────────┼────────┼────────────┼──────────────────────┤
+     │ 8   │ Food          │ 8.75   │ 2026-05-14 │ Coffee and snacks    │
+     └─────┴───────────────┴────────┴────────────┴──────────────────────┘
+
+     - Commit and close
+
+     ---
+     2. app.py
+
+     Add after from flask import Flask, render_template:
+
+     from database.db import get_db, init_db, seed_db
+
+     Add before (or after) the routes block, before if __name__ == "__main__"::
+
+     with app.app_context():
+         init_db()
+         seed_db()
+
+     ---
+     Rules (from spec)
+
+     - All SQL uses parameterized queries (? placeholders) — no string
+     formatting
+     - PRAGMA foreign_keys = ON set on every connection in get_db()
+     - amount stored as REAL
+     - Passwords hashed with werkzeug.security.generate_password_hash
+     - No ORMs
+
+     ---
+     Verification
+
+     1. Run python app.py — server should start on port 5001 with no errors
+     2. Check spendly.db was created in project root
+     3. Open SQLite: sqlite3 spendly.db
+       - .tables → should show users and expenses
+       - SELECT * FROM users; → 1 row (Demo User, demo@spendly.com, hashed
+     password)
+       - SELECT * FROM expenses; → 8 rows across 7 categories
+       - SELECT COUNT(DISTINCT category) FROM expenses; → 7
+     4. Run python app.py a second time → no duplicate seed data (seed guard
+     works)
+     5. Test FK enforcement: INSERT INTO expenses (user_id, amount, category, 
+     date) VALUES (999, 10, 'Food', '2026-05-14'); → should fail
+
+● Starting with database/db.py — implementing all three functions.
+
+● Write(database\db.py)
+  ⎿  Added 71 lines, removed 5 lines
+       1 -# Students will write this file in Step 1 — Database Setup     
+       2 -# This file should contain:                                    
+       3 -#   get_db()   — returns a SQLite connection with row_factory  
+         -and foreign keys enabled                                       
+       4 -#   init_db()  — creates all tables using CREATE TABLE IF NOT  
+         -EXISTS                                                         
+       5 -#   seed_db()  — inserts sample data for development           
+       1 +import sqlite3                                                 
+       2 +import os                                                      
+       3 +from werkzeug.security import generate_password_hash           
+       4 +                                                               
+       5 +DB_PATH = os.path.join(os.path.dirname(__file__), '..',        
+         +'spendly.db')                                                  
+       6 +                                                               
+       7 +                                                               
+       8 +def get_db():                                                  
+       9 +    conn = sqlite3.connect(DB_PATH)                            
+      10 +    conn.row_factory = sqlite3.Row                             
+      11 +    conn.execute("PRAGMA foreign_keys = ON")                   
+      12 +    return conn                                                
+      13 +                                                               
+      14 +                                                               
+      15 +def init_db():                                                 
+      16 +    conn = get_db()                                            
+      17 +    conn.executescript("""                                     
+      18 +        CREATE TABLE IF NOT EXISTS users (                     
+      19 +            id            INTEGER PRIMARY KEY AUTOINCREMENT,   
+      20 +            name          TEXT    NOT NULL,                    
+      21 +            email         TEXT    UNIQUE NOT NULL,             
+      22 +            password_hash TEXT    NOT NULL,                    
+      23 +            created_at    TEXT    DEFAULT (datetime('now'))    
+      24 +        );                                                     
+      25 +                                                               
+      26 +        CREATE TABLE IF NOT EXISTS expenses (                  
+      27 +            id          INTEGER PRIMARY KEY AUTOINCREMENT,     
+      28 +            user_id     INTEGER NOT NULL REFERENCES users(id), 
+      29 +            amount      REAL    NOT NULL,                      
+      30 +            category    TEXT    NOT NULL,                      
+      31 +            date        TEXT    NOT NULL,                      
+      32 +            description TEXT,                                  
+      33 +            created_at  TEXT    DEFAULT (datetime('now'))      
+      34 +        );                                                     
+      35 +    """)                                                       
+      36 +    conn.commit()                                              
+      37 +    conn.close()                                               
+      38 +                                                               
+      39 +                                                               
+      40 +def seed_db():                                                 
+      41 +    conn = get_db()                                            
+      42 +    cursor = conn.cursor()                                     
+      43 +                                                               
+      44 +    count = cursor.execute("SELECT COUNT(*) FROM               
+         +users").fetchone()[0]                                          
+      45 +    if count > 0:                                              
+      46 +        conn.close()                                           
+      47 +        return                                                 
+      48 +                                                               
+      49 +    cursor.execute(                                            
+      50 +        "INSERT INTO users (name, email, password_hash) VALUES 
+         + (?, ?, ?)",                                                   
+      51 +        ("Demo User", "demo@spendly.com",                      
+         +generate_password_hash("demo123")),                            
+      52 +    )                                                          
+      53 +    user_id = cursor.lastrowid                                 
+      54 +                                                               
+      55 +    expenses = [                                               
+      56 +        (user_id, 12.50, "Food",          "2026-05-01",        
+         +"Grocery run"),                                                
+      57 +        (user_id, 35.00, "Transport",     "2026-05-03",        
+         +"Monthly bus pass"),                                           
+      58 +        (user_id, 80.00, "Bills",         "2026-05-05",        
+         +"Electricity bill"),                                           
+      59 +        (user_id, 25.00, "Health",        "2026-05-07",        
+         +"Pharmacy"),                                                   
+      60 +        (user_id, 15.00, "Entertainment", "2026-05-09",        
+         +"Netflix subscription"),                                       
+      61 +        (user_id, 60.00, "Shopping",      "2026-05-11", "New   
+         +shoes"),                                                       
+      62 +        (user_id, 10.00, "Other",         "2026-05-13",        
+         +"Miscellaneous"),                                              
+      63 +        (user_id,  8.75, "Food",          "2026-05-14",        
+         +"Coffee and snacks"),                                          
+      64 +    ]                                                          
+      65 +    cursor.executemany(                                        
+      66 +        "INSERT INTO expenses (user_id, amount, category,      
+         +date, description) VALUES (?, ?, ?, ?, ?)",                    
+      67 +        expenses,                                              
+      68 +    )                                                          
+      69 +                                                               
+      70 +    conn.commit()                                              
+      71 +    conn.close()                                               
+
+● Now update app.py to import and call the DB functions at startup.
+
+● Update(app.py)
+  ⎿  Added 5 lines
+       1  from flask import Flask, render_template                       
+       2 +from database.db import get_db, init_db, seed_db               
+       3                                                                 
+       4  app = Flask(__name__)                                          
+       5                                                                 
+       6 +with app.app_context():                                        
+       7 +    init_db()                                                  
+       8 +    seed_db()                                                  
+       9                                                                 
+      10 +                                                               
+      11  # ------------------------------------------------------------ 
+          ------ #                                                       
+      12  # Routes                                                       
+                  #                                                      
+      13  # ------------------------------------------------------------ 
+          ------ #                                                       
+
+● Now verify the app starts and the database is seeded correctly.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All green. Let me also verify the seed guard (no duplicates on second run) and
+   FK enforcement.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Everything passes. Here's what was implemented:
+
+  database/db.py
+  - get_db() — opens spendly.db, sets row_factory = sqlite3.Row, enables PRAGMA 
+  foreign_keys = ON
+  - init_db() — creates users and expenses tables with CREATE TABLE IF NOT 
+  EXISTS
+  - seed_db() — inserts 1 demo user + 8 expenses across all 7 categories; guard
+  prevents duplicates on repeated calls
+
+  app.py — imports the three functions and calls init_db() / seed_db() inside
+  app.app_context() at startup.
+
+  All 9 Definition-of-Done items are satisfied: tables exist, demo user has a
+  hashed password, 8 expenses span 7 categories, no duplicate seeding, FK
+  enforcement works, and all queries use parameterized SQL.
+
+✻ Crunched for 1m 22s
+
+※ recap: Database setup is complete — db.py is fully implemented and app.py initializes the database on startup. Next step is committing the changes to the feature branch. (disable recaps in /config)
+
+! git add .                                                                       ⎿  warning: in the working copy of 'app.py', LF will be replaced by CRLF
+     the next time Git touches it
+     warning: in the working copy of 'database/db.py', LF will be replaced
+     … +5 lines (ctrl+o to expand)
+
+! git commit -m 'database setup'                                                
+  ⎿  [feature/database-setup bc019cc] database setup
+      6 files changed, 925 insertions(+), 5 deletions(-)
+      create mode 100644 .claude/specs/01-database-setup.md
+     … +3 lines (ctrl+o to expand)
+
+! git push origin feature/database-setup                                        
+  ⎿  remote:
+     remote: Create a pull request for 'feature/database-setup' on GitHub b
+     y visiting:
+     … +5 lines (ctrl+o to expand)
+
+※ recap: Database setup for Spendly is complete. Both files are implemented and verified. Next step is committing the changes on the feature/database-setup branch. (disable recaps in /config)
+
+! git chechout main                                                             
+  ⎿  git: 'chechout' is not a git command. See 'git --help'.
+
+     The most similar command is
+        checkout
+
+! git checkout main                                                             
+  ⎿  Switched to branch 'main'
+     Your branch is up to date with 'origin/main'.
+
+! git pull origin main                                                          
+  ⎿  From https://github.com/Atharv-Agrawal/spendly
+      * branch            main       -> FETCH_HEAD
+        654f96c..b57271c  main       -> origin/main
+     … +14 lines (ctrl+o to expand)
+
+! git branch -D feature/database-setup                                          
+  ⎿  Deleted branch feature/database-setup (was bc019cc).
+
+※ recap: Database setup for Spendly is complete. Both db.py and app.py are implemented and verified. Next step is committing the changes on the feature/database-setup branch. (disable recaps in /config)
