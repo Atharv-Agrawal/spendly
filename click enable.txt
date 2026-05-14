@@ -1,0 +1,620 @@
+╭─── Claude Code v2.1.140 ─────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                Welcome back Atharv!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ What's new              │
+│                        ▘▘ ▝▝                       │ Improved Agent tool `s… │
+│      Sonnet 4.6 · Claude Pro ·                     │ Updated agent color pa… │
+│      atharvagrawal236@gmail.com's Organization     │ Fixed `/goal` silently… │
+│         ~\OneDrive\Desktop\expense-tracker         │ /release-notes for more │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ /rename landing page improvements 
+  ⎿  Session renamed to: landing page improvements
+
+❯ Add two links to the footer in @templates/base.html:                          
+                                                                                
+  - "Terms and Conditions"                                                      
+  - "Privacy Policy"                                                            
+                                                                                
+  Both should be plain text links, no special styling needed for now.           
+  Point both to "#" as placeholder hrefs since the pages don't exist yet.       
+                                                                                
+  Do not modify anything else on the page.                                      
+                                                                                
+  ⎿  Read templates\base.html (44 lines)
+
+● Update(templates\base.html)
+  ⎿  Added 1 line
+      34              <span class="brand-icon">◈</span>                  
+      35              <span class="footer-name">Spendly</span>           
+      36              <p class="footer-copy">Track every rupee. Own your 
+           finances.</p>                                                 
+      37 +            <p><a href="#">Terms and Conditions</a> · <a       
+         +href="#">Privacy Policy</a></p>                                
+      38          </div>                                                 
+      39      </footer>                                                  
+      40                                                                 
+
+● Done. Added "Terms and Conditions" and "Privacy Policy" as plain # links in
+  the footer, below the existing tagline.
+
+✻ Baked for 6s
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of '.claude/settings.local.json', LF will
+      be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'app.py', LF will be replaced by CRLF
+     … +5 lines (ctrl+o to expand)
+
+❯ git commit -m "landing: add terms and privacy links to footer”                
+
+✻ Cogitated for 2s
+
+※ recap: Added Terms and Conditions and Privacy Policy placeholder links to the footer in base.html, which was committed. Next step would be creating the actual pages for those links when ready. (disable recaps in /config)
+
+❯ Create a "Terms and Conditions" page for Spendly.                             
+                                                                                
+  1. Add a new route in [@app.py](http://app.py/):                              
+  GET /terms → renders templates/terms.html                                     
+  2. Create templates/terms.html with generic terms and conditions              
+  content appropriate for a personal expense tracking app.                      
+  Include sections like: Acceptance of Terms, Use of Service,                   
+  User Data, Limitations of Liability, and Changes to Terms.                    
+  Extend base.html if it exists, otherwise match the style of                   
+  landing.html.                                                                 
+  3. In @templates/landing.html, update the "Terms and Conditions"              
+  footer link href from "#" to "/terms".                                        
+                                                                                
+  ⎿  Read templates\landing.html (93 lines)
+
+● I'll read app.py to understand the routing structure, then make all three
+  changes.
+
+  Read 1 file (ctrl+o to expand)
+
+● Now I'll do all three changes in parallel: add the route, create the template,
+   and update the footer link.
+
+● Update(app.py)
+  ⎿  Added 5 lines
+      22      return render_template("login.html")                       
+      23                                                                 
+      24                                                                 
+      25 +@app.route("/terms")                                           
+      26 +def terms():                                                   
+      27 +    return render_template("terms.html")                       
+      28 +                                                               
+      29 +                                                               
+      30  # ------------------------------------------------------------ 
+          ------ #                                                       
+      31  # Placeholder routes — students will implement these           
+                  #                                                      
+      32  # ------------------------------------------------------------ 
+          ------ #                                                       
+
+● Write(templates\terms.html)
+  ⎿  Wrote 53 lines to templates\terms.html
+     {% extends "base.html" %}
+
+     {% block title %}Terms and Conditions — Spendly{% endblock %}
+
+     {% block content %}
+
+     <section class="terms-page">
+         <div class="terms-inner">
+             <h1 class="terms-title">Terms and Conditions</h1>
+             <p class="terms-updated">Last updated: May 2026</p>
+     … +73 lines (ctrl+o to expand)
+
+● Now update the Terms link in the footer. The footer lives in base.html, not
+  landing.html — I'll fix it there.
+
+● Update(templates\base.html)
+  ⎿  Added 1 line, removed 1 line
+      34              <span class="brand-icon">◈</span>                  
+      35              <span class="footer-name">Spendly</span>           
+      36              <p class="footer-copy">Track every rupee. Own your 
+           finances.</p>                                                 
+      37 -            <p><a href="#                                      
+         -">Terms and Conditions</a> · <a href="#">Privacy Policy</a></p>
+      37 +            <p><a href="{{ url_for('terms') }}                 
+         +">Terms and Conditions</a> · <a href="#">Privacy Policy</a></p>
+      38          </div>                                                 
+      39      </footer>                                                  
+      40                                                                 
+
+● Done. Three changes made:
+
+  - app.py — added GET /terms route rendering terms.html
+  - templates/terms.html — created with sections: Acceptance of Terms, Use of
+  Service, User Data, Limitation of Liability, Changes to Terms, and Contact;
+  extends base.html
+  - templates/base.html — "Terms and Conditions" footer link updated from # to
+  url_for('terms')
+
+  Note: the Privacy Policy link is still # since that page doesn't exist yet.
+  The Terms page references a privacy route in the User Data section — you'll
+  want to wire that up when you create the Privacy Policy page.
+
+✻ Cogitated for 32s
+
+※ recap: Building a landing page for Spendly. Added Terms and Conditions page with route, template, and footer link. Next: create the Privacy Policy page similarly. (disable recaps in /config)
+
+❯ Also make sure the appearance of                                              
+  @templates/terms.html matches the website's                                   
+  theme                                                                         
+  ⎿  Read templates\terms.html (54 lines)
+
+● Let me check the existing CSS to understand the design system.
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Now I have a clear picture of the design system. I need to add CSS for the
+  terms page classes, and also fix the url_for('privacy') call in terms.html
+  (that route doesn't exist yet and would throw a Flask error).
+
+● Update(static\css\style.css)  ⎿  Added 65 lines
+      508  }                                                             
+      509                                                                
+      510  /* ---------------------------------------------------------- 
+           -------- */                                                   
+      511 +/* Terms / Privacy pages                                      
+          +         */                                                   
+      512 +/* ---------------------------------------------------------- 
+          +-------- */                                                   
+      513 +                                                              
+      514 +.terms-page {                                                 
+      515 +    padding: 4rem 2rem 6rem;                                  
+      516 +}                                                             
+      517 +                                                              
+      518 +.terms-inner {                                                
+      519 +    max-width: 720px;                                         
+      520 +    margin: 0 auto;                                           
+      521 +}                                                             
+      522 +                                                              
+      523 +.terms-title {                                                
+      524 +    font-family: var(--font-display);                         
+      525 +    font-size: clamp(2rem, 4vw, 3rem);                        
+      526 +    color: var(--ink);                                        
+      527 +    margin-bottom: 0.5rem;                                    
+      528 +}                                                             
+      529 +                                                              
+      530 +.terms-updated {                                              
+      531 +    font-size: 0.85rem;                                       
+      532 +    color: var(--ink-faint);                                  
+      533 +    margin-bottom: 3rem;                                      
+      534 +}                                                             
+      535 +                                                              
+      536 +.terms-section {                                              
+      537 +    margin-bottom: 2.5rem;                                    
+      538 +}                                                             
+      539 +                                                              
+      540 +.terms-section h2 {                                           
+      541 +    font-family: var(--font-display);                         
+      542 +    font-size: 1.25rem;                                       
+      543 +    color: var(--ink);                                        
+      544 +    margin-bottom: 0.75rem;                                   
+      545 +}                                                             
+      546 +                                                              
+      547 +.terms-section p {                                            
+      548 +    font-size: 0.975rem;                                      
+      549 +    color: var(--ink-muted);                                  
+      550 +    line-height: 1.8;                                         
+      551 +    margin-bottom: 0.75rem;                                   
+      552 +}                                                             
+      553 +                                                              
+      554 +.terms-section ul {                                           
+      555 +    margin: 0.5rem 0 0.75rem 1.25rem;                         
+      556 +    display: flex;                                            
+      557 +    flex-direction: column;                                   
+      558 +    gap: 0.4rem;                                              
+      559 +}                                                             
+      560 +                                                              
+      561 +.terms-section ul li {                                        
+      562 +    font-size: 0.975rem;                                      
+      563 +    color: var(--ink-muted);                                  
+      564 +    line-height: 1.7;                                         
+      565 +}                                                             
+      566 +                                                              
+      567 +.terms-section a {                                            
+      568 +    color: var(--accent);                                     
+      569 +    text-decoration: underline;                               
+      570 +    text-underline-offset: 2px;                               
+      571 +}                                                             
+      572 +                                                              
+      573 +.terms-section a:hover { color: var(--ink); }                 
+      574 +                                                              
+      575 +/* ---------------------------------------------------------- 
+          +-------- */                                                   
+      576  /* Responsive                                                 
+                     */                                                  
+      577  /* ---------------------------------------------------------- 
+           -------- */                                                   
+      578                                                                
+
+● Now fix the broken url_for('privacy') link — that route doesn't exist yet.
+
+● Update(templates\terms.html)
+  ⎿  Error editing file
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● It's already # — the file was saved correctly from the start. The CSS
+  additions are the only change needed.
+
+  The terms page now matches the site's theme:
+
+  - Heading uses DM Serif Display (same as hero/feature titles)
+  - Section h2s use the display font at a smaller size
+  - Body text uses --ink-muted at 0.975rem with 1.8 line-height for readability
+  - Links are styled in --accent (dark green) with underline, consistent with
+  the auth pages
+  - Layout is a centered 720px column with generous vertical padding, matching
+  the overall page structure
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Also make sure the appearance of                                              
+  @templates/terms.html matches the website's                                   
+  theme                                                                         
+  ⎿  Read templates\terms.html (54 lines)
+
+● Let me verify the current state of both files to check what's already in
+  place.
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● The styling is already fully in place from the previous (interrupted)
+  response. Here's a summary of what's there:
+
+  - .terms-page / .terms-inner — centered 720px column with vertical padding
+  matching the rest of the site
+  - .terms-title — DM Serif Display font, same as hero/feature headings
+  - .terms-updated — small, muted date line in --ink-faint
+  - .terms-section h2 — display font at 1.25rem
+  - .terms-section p / li — --ink-muted at 0.975rem, 1.8 line-height for
+  comfortable reading
+  - .terms-section a — --accent (dark green) with underline, consistent with the
+   auth pages
+
+  No further changes are needed — the page should already match the site's
+  theme.
+
+✻ Brewed for 13s
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of 'app.py', LF will be replaced by CRLF
+     the next time Git touches it
+     warning: in the working copy of 'static/css/style.css', LF will be rep
+     … +5 lines (ctrl+o to expand)
+
+! git commit -m "landing: add terms and conditions page and route”              
+  ⎿  /usr/bin/bash: eval: line 1: unexpected EOF while looking for matching
+      `"'
+
+! git commit -m "landing: add terms and conditions page and route"              
+  ⎿  [main 164a68d] landing: add terms and conditions page and route
+      6 files changed, 250 insertions(+), 1 deletion(-)
+      create mode 100644 intro git push.txt
+      create mode 100644 templates/terms.html
+
+❯ Do the same as you did for the Terms and Conditions page,                     
+  but for Privacy Policy.                                                       
+                                                                                
+  1. Add a new route in [@app.py](http://app.py/):                              
+  GET /privacy → renders templates/privacy.html                                 
+  2. Create templates/privacy.html with generic privacy policy                  
+  content appropriate for a personal expense tracking app.                      
+  Include sections like: Data We Collect, How We Use Your Data,                 
+  Data Storage, Third Party Services, and Contact Us.                           
+  Match the style of terms.html.                                                
+  3. In @templates/landing.html, update the "Privacy Policy"                    
+  footer link href from "#" to "/privacy".                                      
+  4. Make sure the appearance looks like the website's theme                    
+                                                                                
+  ⎿  Read templates\landing.html (93 lines)
+
+● All three changes are independent — I'll do them in parallel.
+
+● Update(app.py)
+  ⎿  Added 5 lines
+      27      return render_template("terms.html")                       
+      28                                                                 
+      29                                                                 
+      30 +@app.route("/privacy")                                         
+      31 +def privacy():                                                 
+      32 +    return render_template("privacy.html")                     
+      33 +                                                               
+      34 +                                                               
+      35  # ------------------------------------------------------------ 
+          ------ #                                                       
+      36  # Placeholder routes — students will implement these           
+                  #                                                      
+      37  # ------------------------------------------------------------ 
+          ------ #                                                       
+
+● Write(templates\privacy.html)
+  ⎿  Wrote 62 lines to templates\privacy.html
+     {% extends "base.html" %}
+
+     {% block title %}Privacy Policy — Spendly{% endblock %}
+
+     {% block content %}
+
+     <section class="terms-page">
+         <div class="terms-inner">
+             <h1 class="terms-title">Privacy Policy</h1>
+             <p class="terms-updated">Last updated: May 2026</p>
+     … +78 lines (ctrl+o to expand)
+
+● Update(templates\base.html)
+  ⎿  Added 1 line, removed 1 line
+      34              <span class="brand-icon">◈</span>                  
+      35              <span class="footer-name">Spendly</span>           
+      36              <p class="footer-copy">Track every rupee. Own your 
+           finances.</p>                                                 
+      37 -            <p><a href="{{ url_for('terms') }}">Terms and      
+         -Conditions</a> · <a href="#">Privacy Policy</a></p>            
+      37 +            <p><a href="{{ url_for('terms') }}">Terms and      
+         +Conditions</a> · <a href="{{ url_for('privacy') }}             
+         +">Privacy Policy</a></p>                                       
+      38          </div>                                                 
+      39      </footer>                                                  
+      40                                                                 
+
+● Done. Three changes made in parallel:
+
+  - app.py — added GET /privacy route rendering privacy.html
+  - templates/privacy.html — created with sections: Data We Collect, How We Use
+  Your Data, Data Storage, Third-Party Services, Cookies, and Contact Us; reuses
+   the same terms-page / terms-inner / terms-section CSS classes so styling is
+  identical to the Terms page
+  - templates/base.html — Privacy Policy footer link updated from # to
+  url_for('privacy')
+
+✻ Worked for 20s
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of 'app.py', LF will be replaced by CRLF
+     the next time Git touches it
+     warning: in the working copy of 'templates/base.html', LF will be repl
+     … +3 lines (ctrl+o to expand)
+
+! git commit -m "landing: add privacy policy page and route"                    
+  ⎿  [main 59bf1e7] landing: add privacy policy page and route
+      3 files changed, 68 insertions(+), 1 deletion(-)
+      create mode 100644 templates/privacy.html
+
+※ recap: Built out the Terms and Conditions and Privacy Policy pages with routes, templates, and themed styling. Both footer links are now wired up. No immediate next action is pending. (disable recaps in /config)
+
+❯ & 'c:\Users\athar\Downloads\spendly ss.png'                                   
+
+  Read 1 file (ctrl+o to expand)
+※ recap: Built Terms and Conditions and Privacy Policy pages for Spendly, each with a route, themed template, and working footer links. No immediate next action needed unless you want to wire up actual page content or continue with other features.
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of 'static/css/style.css', LF will be rep
+     laced by CRLF the next time Git touches it
+     warning: in the working copy of 'templates/landing.html', LF will be r
+     eplaced by CRLF the next time Git touches it
+
+! git commit -m "landing: redesign hero section to match mockup"                
+  ⎿  [main fe1a59c] landing: redesign hero section to match mockup
+      2 files changed, 137 insertions(+), 89 deletions(-)
+
+❯ Add a modal to @templates/landing.html that opens when the user clicks        
+  "See how it works".                                                           
+                                                                                
+  Requirements:                                                                 
+                                                                                
+  - Clicking "See how it works" opens a modal overlay                           
+  - Modal contains an embedded YouTube video (use any placeholder YouTube URL   
+  for now, I will replace it later)                                             
+  - Video should be playable inside the modal                                   
+  - Clicking the close button OR clicking outside the modal closes it           
+  - When the modal closes, the video must stop playing (not continue in         
+  background)                                                                   
+  - No page libraries or dependencies — vanilla JS only, since we are not       
+  using any JS framework in this project                                        
+                                                                                
+  Do not modify any other part of the page.                                     
+  ⎿  Read templates\landing.html (100 lines)
+
+● Let me check the current landing.html and base.html structure to confirm the
+  available template blocks.
+
+  Read 1 file (ctrl+o to expand)
+
+● Good — {% block head %} and {% block scripts %} are available. I'll make three
+   targeted edits to landing.html: add an id to the trigger button, append the
+  modal HTML inside the content block, and add CSS + JS in their respective
+  blocks.
+
+● Update(templates\landing.html)
+  ⎿  Added 64 lines
+       2                                                                 
+       3  {% block title %}Spendly — Track Every Rupee{% endblock %}     
+       4                                                                 
+       5 +{% block head %}                                               
+       6 +<style>                                                        
+       7 +    .modal-overlay {                                           
+       8 +        display: none;                                         
+       9 +        position: fixed;                                       
+      10 +        inset: 0;                                              
+      11 +        background: rgba(0, 0, 0, 0.65);                       
+      12 +        z-index: 200;                                          
+      13 +        align-items: center;                                   
+      14 +        justify-content: center;                               
+      15 +        padding: 1.5rem;                                       
+      16 +    }                                                          
+      17 +                                                               
+      18 +    .modal-overlay.is-open {                                   
+      19 +        display: flex;                                         
+      20 +    }                                                          
+      21 +                                                               
+      22 +    .modal-box {                                               
+      23 +        position: relative;                                    
+      24 +        width: 100%;                                           
+      25 +        max-width: 800px;                                      
+      26 +        background: var(--ink);                                
+      27 +        border-radius: var(--radius-lg);                       
+      28 +        overflow: hidden;                                      
+      29 +        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);            
+      30 +    }                                                          
+      31 +                                                               
+      32 +    .modal-close {                                             
+      33 +        position: absolute;                                    
+      34 +        top: 0.75rem;                                          
+      35 +        right: 0.75rem;                                        
+      36 +        z-index: 10;                                           
+      37 +        background: rgba(255, 255, 255, 0.12);                 
+      38 +        border: none;                                          
+      39 +        color: #fff;                                           
+      40 +        font-size: 1.25rem;                                    
+      41 +        line-height: 1;                                        
+      42 +        width: 2rem;                                           
+      43 +        height: 2rem;                                          
+      44 +        border-radius: 50%;                                    
+      45 +        cursor: pointer;                                       
+      46 +        display: flex;                                         
+      47 +        align-items: center;                                   
+      48 +        justify-content: center;                               
+      49 +        transition: background 0.2s;                           
+      50 +    }                                                          
+      51 +                                                               
+      52 +    .modal-close:hover { background: rgba(255, 255, 255,       
+         +0.25); }                                                       
+      53 +                                                               
+      54 +    .modal-video-wrap {                                        
+      55 +        position: relative;                                    
+      56 +        padding-top: 56.25%; /* 16:9 */                        
+      57 +    }                                                          
+      58 +                                                               
+      59 +    .modal-video-wrap iframe {                                 
+      60 +        position: absolute;                                    
+      61 +        inset: 0;                                              
+      62 +        width: 100%;                                           
+      63 +        height: 100%;                                          
+      64 +        border: none;                                          
+      65 +    }                                                          
+      66 +</style>                                                       
+      67 +{% endblock %}                                                 
+      68 +                                                               
+      69  {% block content %}                                            
+      70                                                                 
+      71  <section class="hero">                                         
+
+● Update(templates\landing.html)
+  ⎿  Added 1 line, removed 1 line
+      81          </p>                                                   
+      82          <div class="hero-actions">                             
+      83              <a href="{{ url_for('register') }}"                
+          class="btn-primary">Create free account</a>                    
+      84 -            <a href="#features" class="btn-primary"            
+         ->See how it works</a>                                          
+      84 +            <a href="#features" class="btn-primary"            
+         + id="open-video-modal">See how it works</a>                    
+      85          </div>                                                 
+      86      </div>                                                     
+      87      <div class="hero-visual">                                  
+
+● Update(templates\landing.html)
+  ⎿  Error editing file
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(templates\landing.html)
+  ⎿  Added 50 lines
+      160      </div>                                                    
+      161  </section>                                                    
+      162                                                                
+      163 +<div id="video-modal" class="modal-overlay" aria-modal="true" 
+          + role="dialog" aria-label="Product demo video">               
+      164 +    <div class="modal-box">                                   
+      165 +        <button class="modal-close" id="modal-close"          
+          +aria-label="Close">&times;</button>                           
+      166 +        <div class="modal-video-wrap">                        
+      167 +            <iframe                                           
+      168 +                id="modal-iframe"                             
+      169 +                data-src="https://www.youtube.com/embed/dQw4w 
+          +9WgXcQ?enablejsapi=1"                                         
+      170 +                src=""                                        
+      171 +                allow="accelerometer; autoplay;               
+          +clipboard-write; encrypted-media; gyroscope;                  
+          +picture-in-picture"                                           
+      172 +                allowfullscreen                               
+      173 +            ></iframe>                                        
+      174 +        </div>                                                
+      175 +    </div>                                                    
+      176 +</div>                                                        
+      177 +                                                              
+      178  {% endblock %}                                                
+      179 +                                                              
+      180 +{% block scripts %}                                           
+      181 +<script>                                                      
+      182 +(function () {                                                
+      183 +    const modal    = document.getElementById('video-modal');  
+      184 +    const iframe   = document.getElementById('modal-iframe'); 
+      185 +    const openBtn  =                                          
+          +document.getElementById('open-video-modal');                  
+      186 +    const closeBtn = document.getElementById('modal-close');  
+      187 +                                                              
+      188 +    function openModal(e) {                                   
+      189 +        e.preventDefault();                                   
+      190 +        iframe.src = iframe.dataset.src;                      
+      191 +        modal.classList.add('is-open');                       
+      192 +        document.body.style.overflow = 'hidden';              
+      193 +    }                                                         
+      194 +                                                              
+      195 +    function closeModal() {                                   
+      196 +        modal.classList.remove('is-open');                    
+      197 +        iframe.src = '';                                      
+      198 +        document.body.style.overflow = '';                    
+      199 +    }                                                         
+      200 +                                                              
+      201 +    openBtn.addEventListener('click', openModal);             
+      202 +    closeBtn.addEventListener('click', closeModal);           
+      203 +                                                              
+      204 +    modal.addEventListener('click', function (e) {            
+      205 +        if (e.target === modal) closeModal();                 
+      206 +    });                                                       
+      207 +                                                              
+      208 +    document.addEventListener('keydown', function (e) {       
+      209 +        if (e.key === 'Escape' &&                             
+          +modal.classList.contains('is-open')) closeModal();            
+      210 +    });                                                       
+      211 +}());                                                         
+      212 +</script>                                                     
+      213 +{% endblock %}                                                
+
+● Done. Here's what was added to landing.html only:
+
+  - CSS ({% block head %}) — modal overlay, box, close button, and a 16:9
+  responsive iframe wrapper using the padding-top: 56.25% trick
+  - Button — added id="open-video-modal" to "See how it works"; href="#features"
+   preserved as a no-JS fallback
+  - Modal HTML — the overlay, inner box, close button, and an iframe whose src
+  starts empty (so no request fires until the modal opens)
+  - JS ({% block scripts %}) — IIFE with four behaviours:
+    - Open: sets iframe.src from data-src and locks scroll
+    - Close button: clears iframe.src (stops video) and unlocks scroll
+    - Click outside (overlay): same close logic
+    - Escape key: same close logic
+
+  Replace the dQw4w9WgXcQ embed ID in data-src with your real video ID whenever
+  you're ready.
+
+✻ Worked for 1m 17s
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of 'templates/landing.html', LF will be r
+     eplaced by CRLF the next time Git touches it
+
+! git commit -m "landing: add youtube modal on see how it works click"          
+  ⎿  [main 654f96c] landing: add youtube modal on see how it works click
+      1 file changed, 115 insertions(+), 1 deletion(-)
+
+! git push origin main                                                          
+  ⎿  To https://github.com/Atharv-Agrawal/spendly.git
+        b0f3c26..654f96c  main -> main
