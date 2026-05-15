@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+    <!-- Profile card -->
+    <div class="profile-card">
+        <div class="avatar">
+            {{ user.name | initials }}
+        </div>
+        <div class="profile-info">
+            <h2>{{ user.name }}</h2>
+            <p class="email">{{ user.email }}</p>
+            <p class="member-since">Member since {{ user.created_at | member_since }}</p>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Total Spent</div>
+            <div class="stat-value">₹{{ total | inr }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Transactions</div>
+            <div class="stat-value">{{ transaction_count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Top Category</div>
+            <div class="stat-value">{{ top_category or "—" }}</div>
+        </div>
+    </div>
+
+    <!-- Recent transactions + Category breakdown side by side -->
+    <div class="bottom-row">
+    <div class="transactions-card">
+        <h3>Recent Transactions</h3>
+        {% if expenses %}
+        <table class="tx-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th class="th-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expenses %}
+                <tr>
+                    <td>{{ e.date | fmt_date }}</td>
+                    <td>{{ e.description or "—" }}</td>
+                    <td>
+                        <span class="category-badge {{ e.category | lower }}">{{ e.category }}</span>
+                    </td>
+                    <td class="amount">₹{{ e.amount | inr }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No transactions yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="breakdown-card">
+        <h3>By Category</h3>
+        {% if category_totals %}
+        <div class="breakdown-list">
+            {% for cat, amt in category_totals %}
+            <div class="breakdown-row">
+                <div class="breakdown-row-header">
+                    <span class="cat-name">{{ cat }}</span>
+                    <span class="breakdown-amount">₹{{ amt | inr }}</span>
+                </div>
+                <div class="breakdown-bar-track">
+                    {% if total %}
+                    <div class="breakdown-bar {{ cat | lower }}" style="width: {{ (amt / category_totals[0][1] * 100) | round(1) }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No data yet.</p>
+        {% endif %}
+    </div>
+    </div><!-- /.bottom-row -->
+
+</div>
+{% endblock %}
