@@ -21,6 +21,11 @@ def initials(name):
     return "".join(w[0] for w in name.split() if w).upper()
 
 
+@app.template_filter("inr")
+def inr(value):
+    return "{:,.2f}".format(value)
+
+
 @app.template_filter("member_since")
 def member_since(value):
     try:
@@ -103,7 +108,7 @@ def login():
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
         flash(f"Welcome back, {user['name']}!", "success")
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     abort(405)
 
@@ -135,19 +140,28 @@ def profile():
     conn = get_db()
     try:
         user = conn.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
-        expenses = conn.execute(
-            "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC",
-            (session["user_id"],)
-        ).fetchall()
     finally:
         conn.close()
 
+    expenses = [
+        {"date": "2025-04-12", "description": "Groceries",            "category": "Food",          "amount": 850.00},
+        {"date": "2025-04-11", "description": "Metro card recharge",  "category": "Transport",     "amount": 500.00},
+        {"date": "2025-04-10", "description": "Electricity bill",     "category": "Bills",         "amount": 2200.00},
+        {"date": "2025-04-09", "description": "Doctor visit",         "category": "Health",        "amount": 800.00},
+        {"date": "2025-04-08", "description": "Netflix subscription", "category": "Entertainment", "amount": 649.00},
+        {"date": "2025-04-07", "description": "Clothing haul",        "category": "Shopping",      "amount": 3200.00},
+        {"date": "2025-04-06", "description": "Restaurant dinner",    "category": "Food",          "amount": 1450.00},
+        {"date": "2025-04-05", "description": "Miscellaneous",        "category": "Other",         "amount": 2801.75},
+    ]
+
     total = sum(e["amount"] for e in expenses)
-    top_category = None
-    if expenses:
-        from collections import Counter
-        counts = Counter(e["category"] for e in expenses)
-        top_category = counts.most_common(1)[0][0]
+    from collections import Counter, defaultdict
+    counts = Counter(e["category"] for e in expenses)
+    top_category = counts.most_common(1)[0][0]
+    cat_sums = defaultdict(float)
+    for e in expenses:
+        cat_sums[e["category"]] += e["amount"]
+    category_totals = sorted(cat_sums.items(), key=lambda x: x[1], reverse=True)
 
     return render_template(
         "profile.html",
@@ -156,6 +170,7 @@ def profile():
         total=total,
         transaction_count=len(expenses),
         top_category=top_category,
+        category_totals=category_totals,
     )
 
 
