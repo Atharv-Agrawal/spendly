@@ -3,7 +3,9 @@
     "allow": [
       "PowerShell(python -m venv venv)",
       "PowerShell(python app.py)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(python -m pytest tests/test_backend_connection.py -v)",
+      "Bash(python -c ' *)"
     ]
   }
 }
