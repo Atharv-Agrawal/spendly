@@ -5,7 +5,9 @@
       "PowerShell(python app.py)",
       "Bash(git push *)",
       "Bash(python -m pytest tests/test_backend_connection.py -v)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(powershell *)",
+      "Bash(python -m pytest tests/test_06-date-filter-profile.py -v --tb=short)"
     ]
   }
 }

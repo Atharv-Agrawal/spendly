@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from datetime import datetime
 from flask import Flask, render_template, request, flash, redirect, url_for, abort, session
@@ -139,10 +140,27 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
     uid = session["user_id"]
+
+    _date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    from_date = request.args.get("from", "").strip()
+    to_date = request.args.get("to", "").strip()
+    preset = request.args.get("preset", "").strip()
+
+    if from_date and not _date_re.match(from_date):
+        from_date = ""
+    if to_date and not _date_re.match(to_date):
+        to_date = ""
+    if preset not in {"month", "3months", "6months"}:
+        preset = ""
+
+    if from_date and to_date and from_date > to_date:
+        flash("'From' date must be on or before 'To' date.", "error")
+        from_date = to_date = ""
+
     user = get_user_by_id(uid)
-    stats = get_summary_stats(uid)
-    expenses = get_recent_transactions(uid)
-    category_totals = get_category_breakdown(uid)
+    stats = get_summary_stats(uid, from_date=from_date or None, to_date=to_date or None)
+    expenses = get_recent_transactions(uid, from_date=from_date or None, to_date=to_date or None)
+    category_totals = get_category_breakdown(uid, from_date=from_date or None, to_date=to_date or None)
     return render_template(
         "profile.html",
         user=user,
@@ -151,6 +169,9 @@ def profile():
         transaction_count=stats["transaction_count"],
         top_category=stats["top_category"],
         category_totals=category_totals,
+        from_date=from_date,
+        preset=preset,
+        to_date=to_date,
     )
 
 
