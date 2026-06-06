@@ -16,6 +16,27 @@
         </div>
     </div>
 
+    <!-- Date filter -->
+    <form class="date-filter" method="get" action="{{ url_for('profile') }}" id="filter-form">
+        <div class="filter-presets">
+            <button type="button" class="preset-btn {% if not from_date and not to_date %}active{% endif %}"
+                    onclick="applyPreset('all')">All Time</button>
+            <button type="button" class="preset-btn {% if preset == 'month' %}active{% endif %}"
+                    onclick="applyPreset('month')">This Month</button>
+            <button type="button" class="preset-btn {% if preset == '3months' %}active{% endif %}"
+                    onclick="applyPreset('3months')">Last 3 Months</button>
+            <button type="button" class="preset-btn {% if preset == '6months' %}active{% endif %}"
+                    onclick="applyPreset('6months')">Last 6 Months</button>
+        </div>
+        <div class="filter-custom">
+            <input type="hidden" name="preset" id="preset-input" value="{{ preset or '' }}">
+            <input type="date" id="from" name="from" value="{{ from_date or '' }}">
+            <span class="filter-to-label">to</span>
+            <input type="date" id="to" name="to" value="{{ to_date or '' }}">
+            <button type="submit" class="filter-btn">Apply</button>
+        </div>
+    </form>
+
     <!-- Stats row -->
     <div class="stats-row">
         <div class="stat-card">
@@ -67,6 +88,7 @@
     <div class="breakdown-card">
         <h3>By Category</h3>
         {% if category_totals %}
+        {% set max_amt = category_totals[0][1] %}
         <div class="breakdown-list">
             {% for cat, amt in category_totals %}
             <div class="breakdown-row">
@@ -75,9 +97,7 @@
                     <span class="breakdown-amount">₹{{ amt | inr }}</span>
                 </div>
                 <div class="breakdown-bar-track">
-                    {% if total %}
-                    <div class="breakdown-bar {{ cat | lower }}" style="width: {{ (amt / category_totals[0][1] * 100) | round(1) }}%"></div>
-                    {% endif %}
+                    <div class="breakdown-bar {{ cat | lower }}" style="width: {{ (amt / max_amt * 100) | round(1) }}%"></div>
                 </div>
             </div>
             {% endfor %}
