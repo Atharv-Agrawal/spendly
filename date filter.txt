@@ -1,0 +1,1158 @@
+ ▐▛███▜▌   Claude Code v2.1.165
+▝▜█████▛▘  Sonnet 4.6 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive\Desktop\expense-tracker
+
+ ▎ Opus 4.8 is now available! · /model to switch
+
+! git add .                                                                     
+  ⎿  warning: in the working copy of '.claude/agents/spendly-test-writer.md
+     ', LF will be replaced by CRLF the next time Git touches it
+
+❯ /rename date filter 
+  ⎿  Session renamed to: date filter
+
+! git commit -m 'add subagents'                                                 
+  ⎿  [main 538e784] add subagents
+      6 files changed, 820 insertions(+)
+      create mode 100644 .claude/agents/spendly-quality-reviewer.md
+     … +5 lines (ctrl+o to expand)
+
+❯ /create-spec 06 date filter for profile page                                  
+
+● I'll run through the create-spec steps for the date filter feature.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Working directory is clean. Let me research the codebase before writing the
+  spec.
+
+  Searched for 1 pattern, read 2 files, ran 1 shell command (ctrl+o to expand)
+
+● Now let me check the existing queries and profile template to understand
+  what's already in place.
+
+  Read 2 files (ctrl+o to expand)
+
+● Now I have all the context I need. Let me create the branch and write the
+  spec.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(.claude\specs\06-date-filter-profile.md)
+  ⎿  Wrote 51 lines to .claude\specs\06-date-filter-profile.md
+     # Spec: Date Filter for Profile Page
+
+     ## Overview
+     Adds a date range filter to the profile page so users can narrow the
+     transactions table, summary stats, and category breakdown to a chosen
+     time window. The filter is submitted as a GET form with `from` and
+     `to` query parameters. When no dates are provided the page behaves
+     exactly as before (all-time view). This is the first interactive
+     data-exploration feature on the profile page.
+
+     … +66 lines (ctrl+o to expand)
+
+● Branch:    feature/date-filter-profile
+  Spec file: .claude/specs/06-date-filter-profile.md
+  Title:     Date Filter for Profile Page
+
+  Review the spec at .claude/specs/06-date-filter-profile.md then enter Plan
+  Mode with Shift+Tab twice to begin implementation.
+
+✻ Baked for 35s
+
+❯ read the spec document @.claude/specs/06-date-filter-profile.md and come with 
+  an implementation plan                                                        
+  ⎿  Read .claude\specs\06-date-filter-profile.md (52 lines)
+
+  Read 1 file (ctrl+o to expand)
+
+● Here's the implementation plan:
+
+  ---
+  1. database/queries.py — extend all three query functions
+
+  Add optional from_date=None, to_date=None params to get_recent_transactions,
+  get_summary_stats, and get_category_breakdown. When both are provided, append
+  AND date BETWEEN ? AND ? to the WHERE user_id = ? clause using parameterised
+  queries. No change when either is None.
+
+  2. app.py — read and validate query params
+
+  In the profile route:
+  - Read request.args.get("from", "").strip() and request.args.get("to", 
+  "").strip()
+  - If both are present and from_date > to_date, flash an error and clear both
+  so queries run unfiltered
+  - Pass from_date / to_date into each query call
+  - Pass them back to render_template so the form can repopulate
+
+  3. templates/profile.html — add the filter form
+
+  Insert a <form method="get" action="{{ url_for('profile') }}"> block above the
+  stats row with two <input type="date"> fields (named from and to) pre-filled
+  via value="{{ from_date or '' }}", plus a submit button.
+
+  4. static/css/style.css — style the filter form
+
+  Add a .date-filter block using existing CSS variables (--color-*, --font-*) —
+  a flex row with the two inputs, a label each, and a styled submit button
+  consistent with the rest of the page.
+
+  ---
+  Order of changes: queries → app.py → template → CSS. Each step is
+  independently testable. Ready to implement on your say-so.
+
+✻ Sautéed for 11s
+
+❯ yes implement                                                                 
+
+● Starting with the queries, then app.py, template, and CSS.
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(database\queries.py)
+  ⎿  Added 51 lines, removed 23 lines
+      10          conn.close()                                           
+      11                                                                 
+      12                                                                 
+      13 -def get_recent_transactions(user_id, limit=10):                
+      13 +def get_recent_transactions(user_id, limit=10                  
+         +, from_date=None, to_date=None):                               
+      14      conn = get_db()                                            
+      15      try:                                                       
+      16 -        rows = conn.execute(                                   
+      17 -            "SELECT date, description, category, amount FROM   
+         -expenses "                                                     
+      18 -            "WHERE user_id = ? ORDER BY date DESC, id DESC     
+         -LIMIT ?",                                                      
+      19 -            (user_id, limit),                                  
+      20 -        ).fetchall()                                           
+      16 +        if from_date and to_date:                              
+      17 +            rows = conn.execute(                               
+      18 +                "SELECT date, description, category, amount    
+         +FROM expenses "                                                
+      19 +                "WHERE user_id = ? AND date BETWEEN ? AND ? "  
+      20 +                "ORDER BY date DESC, id DESC LIMIT ?",         
+      21 +                (user_id, from_date, to_date, limit),          
+      22 +            ).fetchall()                                       
+      23 +        else:                                                  
+      24 +            rows = conn.execute(                               
+      25 +                "SELECT date, description, category, amount    
+         +FROM expenses "                                                
+      26 +                "WHERE user_id = ? ORDER BY date DESC, id DESC 
+         + LIMIT ?",                                                     
+      27 +                (user_id, limit),                              
+      28 +            ).fetchall()                                       
+      29          return [dict(r) for r in rows]                         
+      30      finally:                                                   
+      31          conn.close()                                           
+      32                                                                 
+      33                                                                 
+      34 -def get_summary_stats(user_id):                                
+      34 +def get_summary_stats(user_id, from_date=None, to_date=None):  
+      35      conn = get_db()                                            
+      36      try:                                                       
+      37 -        row = conn.execute(                                    
+      38 -            "SELECT COALESCE(SUM(amount), 0) AS total_spent,   
+         -COUNT(*) AS transaction_count "                                
+      39 -            "FROM expenses WHERE user_id = ?",                 
+      40 -            (user_id,),                                        
+      41 -        ).fetchone()                                           
+      42 -        top = conn.execute(                                    
+      43 -            "SELECT category FROM expenses WHERE user_id = ? " 
+      44 -            "GROUP BY category ORDER BY SUM(amount) DESC LIMIT 
+         - 1",                                                           
+      45 -            (user_id,),                                        
+      46 -        ).fetchone()                                           
+      37 +        if from_date and to_date:                              
+      38 +            row = conn.execute(                                
+      39 +                "SELECT COALESCE(SUM(amount), 0) AS            
+         +total_spent, COUNT(*) AS transaction_count "                   
+      40 +                "FROM expenses WHERE user_id = ? AND date      
+         +BETWEEN ? AND ?",                                              
+      41 +                (user_id, from_date, to_date),                 
+      42 +            ).fetchone()                                       
+      43 +            top = conn.execute(                                
+      44 +                "SELECT category FROM expenses WHERE user_id = 
+         + ? AND date BETWEEN ? AND ? "                                  
+      45 +                "GROUP BY category ORDER BY SUM(amount) DESC   
+         +LIMIT 1",                                                      
+      46 +                (user_id, from_date, to_date),                 
+      47 +            ).fetchone()                                       
+      48 +        else:                                                  
+      49 +            row = conn.execute(                                
+      50 +                "SELECT COALESCE(SUM(amount), 0) AS            
+         +total_spent, COUNT(*) AS transaction_count "                   
+      51 +                "FROM expenses WHERE user_id = ?",             
+      52 +                (user_id,),                                    
+      53 +            ).fetchone()                                       
+      54 +            top = conn.execute(                                
+      55 +                "SELECT category FROM expenses WHERE user_id = 
+         + ? "                                                           
+      56 +                "GROUP BY category ORDER BY SUM(amount) DESC   
+         +LIMIT 1",                                                      
+      57 +                (user_id,),                                    
+      58 +            ).fetchone()                                       
+      59          return {                                               
+      60              "total_spent": row["total_spent"],                 
+      61              "transaction_count": row["transaction_count"],     
+     ...
+      45          conn.close()                                           
+      46                                                                 
+      47                                                                 
+      48 -def get_category_breakdown(user_id):                           
+      48 +def get_category_breakdown(user_id                             
+         +, from_date=None, to_date=None):                               
+      49      conn = get_db()                                            
+      50      try:                                                       
+      51 -        rows = conn.execute(                                   
+      52 -            "SELECT category, SUM(amount) AS total FROM        
+         -expenses "                                                     
+      53 -            "WHERE user_id = ? GROUP BY category ORDER BY      
+         -total DESC",                                                   
+      54 -            (user_id,),                                        
+      55 -        ).fetchall()                                           
+      51 +        if from_date and to_date:                              
+      52 +            rows = conn.execute(                               
+      53 +                "SELECT category, SUM(amount) AS total FROM    
+         +expenses "                                                     
+      54 +                "WHERE user_id = ? AND date BETWEEN ? AND ? "  
+      55 +                "GROUP BY category ORDER BY total DESC",       
+      56 +                (user_id, from_date, to_date),                 
+      57 +            ).fetchall()                                       
+      58 +        else:                                                  
+      59 +            rows = conn.execute(                               
+      60 +                "SELECT category, SUM(amount) AS total FROM    
+         +expenses "                                                     
+      61 +                "WHERE user_id = ? GROUP BY category ORDER BY  
+         +total DESC",                                                   
+      62 +                (user_id,),                                    
+      63 +            ).fetchall()                                       
+      64          return [(r["category"], r["total"]) for r in rows]     
+      65      finally:                                                   
+      66          conn.close()                                           
+
+● Now update the profile route in app.py:
+
+● Update(app.py)
+  ⎿  Added 13 lines, removed 3 lines
+      139      if not session.get("user_id"):                            
+      140          return redirect(url_for("login"))                     
+      141      uid = session["user_id"]                                  
+      142 +                                                              
+      143 +    from_date = request.args.get("from", "").strip()          
+      144 +    to_date = request.args.get("to", "").strip()              
+      145 +                                                              
+      146 +    if from_date and to_date and from_date > to_date:         
+      147 +        flash("'From' date must be on or before 'To' date.",  
+          +"error")                                                      
+      148 +        from_date = to_date = ""                              
+      149 +                                                              
+      150      user = get_user_by_id(uid)                                
+      151 -    stats = get_summary_stats(uid)                            
+      152 -    expenses = get_recent_transactions(uid)                   
+      153 -    category_totals = get_category_breakdown(uid)             
+      151 +    stats = get_summary_stats(uid                             
+          +, from_date or None, to_date or None)                         
+      152 +    expenses = get_recent_transactions(uid                    
+          +, from_date=from_date or None, to_date=to_date or None)       
+      153 +    category_totals = get_category_breakdown(uid              
+          +, from_date or None, to_date or None)                         
+      154      return render_template(                                   
+      155          "profile.html",                                       
+      156          user=user,                                            
+     ...
+      151          transaction_count=stats["transaction_count"],         
+      152          top_category=stats["top_category"],                   
+      153          category_totals=category_totals,                      
+      154 +        from_date=from_date,                                  
+      155 +        to_date=to_date,                                      
+      156      )                                                         
+      157                                                                
+      158                                                                
+
+● Now add the filter form to profile.html:
+
+● Update(templates\profile.html)
+  ⎿  Added 16 lines
+      16          </div>                                                 
+      17      </div>                                                     
+      18                                                                 
+      19 +    <!-- Date filter -->                                       
+      20 +    <form class="date-filter" method="get" action="{{          
+         +url_for('profile') }}">                                        
+      21 +        <div class="date-filter-group">                        
+      22 +            <label for="from">From</label>                     
+      23 +            <input type="date" id="from" name="from" value="{{ 
+         + from_date or '' }}">                                          
+      24 +        </div>                                                 
+      25 +        <div class="date-filter-group">                        
+      26 +            <label for="to">To</label>                         
+      27 +            <input type="date" id="to" name="to" value="{{     
+         +to_date or '' }}">                                             
+      28 +        </div>                                                 
+      29 +        <button type="submit"                                  
+         +class="filter-btn">Filter</button>                             
+      30 +        {% if from_date or to_date %}                          
+      31 +        <a href="{{ url_for('profile') }}"                     
+         +class="filter-clear">Clear</a>                                 
+      32 +        {% endif %}                                            
+      33 +    </form>                                                    
+      34 +                                                               
+      35      <!-- Stats row -->                                         
+      36      <div class="stats-row">                                    
+      37          <div class="stat-card">                                
+
+● Now add the CSS. Let me find a good anchor point in the stylesheet:
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Update(static\css\style.css)
+  ⎿  Added 67 lines
+      736                                                                
+      737  /* Stats row */                                               
+      738                                                                
+      739 +.date-filter {                                                
+      740 +    display: flex;                                            
+      741 +    align-items: flex-end;                                    
+      742 +    gap: 1rem;                                                
+      743 +    flex-wrap: wrap;                                          
+      744 +    background: var(--paper-card);                            
+      745 +    border: 1px solid var(--border);                          
+      746 +    border-radius: var(--radius-md);                          
+      747 +    padding: 1rem 1.25rem;                                    
+      748 +}                                                             
+      749 +                                                              
+      750 +.date-filter-group {                                          
+      751 +    display: flex;                                            
+      752 +    flex-direction: column;                                   
+      753 +    gap: 0.3rem;                                              
+      754 +}                                                             
+      755 +                                                              
+      756 +.date-filter-group label {                                    
+      757 +    font-size: 0.75rem;                                       
+      758 +    font-weight: 600;                                         
+      759 +    color: var(--text-muted);                                 
+      760 +    text-transform: uppercase;                                
+      761 +    letter-spacing: 0.05em;                                   
+      762 +}                                                             
+      763 +                                                              
+      764 +.date-filter-group input[type="date"] {                       
+      765 +    padding: 0.45rem 0.75rem;                                 
+      766 +    border: 1px solid var(--border);                          
+      767 +    border-radius: var(--radius-sm);                          
+      768 +    background: var(--paper-bg);                              
+      769 +    color: var(--text-primary);                               
+      770 +    font-family: var(--font-body);                            
+      771 +    font-size: 0.9rem;                                        
+      772 +}                                                             
+      773 +                                                              
+      774 +.date-filter-group input[type="date"]:focus {                 
+      775 +    outline: none;                                            
+      776 +    border-color: var(--color-accent);                        
+      777 +}                                                             
+      778 +                                                              
+      779 +.filter-btn {                                                 
+      780 +    padding: 0.48rem 1.25rem;                                 
+      781 +    background: var(--color-accent);                          
+      782 +    color: var(--color-on-accent, #fff);                      
+      783 +    border: none;                                             
+      784 +    border-radius: var(--radius-sm);                          
+      785 +    font-family: var(--font-body);                            
+      786 +    font-size: 0.9rem;                                        
+      787 +    font-weight: 600;                                         
+      788 +    cursor: pointer;                                          
+      789 +}                                                             
+      790 +                                                              
+      791 +.filter-btn:hover {                                           
+      792 +    opacity: 0.88;                                            
+      793 +}                                                             
+      794 +                                                              
+      795 +.filter-clear {                                               
+      796 +    font-size: 0.85rem;                                       
+      797 +    color: var(--text-muted);                                 
+      798 +    text-decoration: none;                                    
+      799 +    align-self: center;                                       
+      800 +}                                                             
+      801 +                                                              
+      802 +.filter-clear:hover {                                         
+      803 +    color: var(--text-primary);                               
+      804 +}                                                             
+      805 +                                                              
+      806  .stats-row {                                                  
+      807      display: grid;                                            
+      808      grid-template-columns: repeat(3, 1fr);                    
+
+● Now let me check what CSS variables are actually defined so the styles will
+  resolve correctly:
+
+  Searched for 2 patterns (ctrl+o to expand)
+
+● Those variables are only used in my new CSS — let me check what the actual
+  variable names are at the :root:
+
+  Read 1 file (ctrl+o to expand)
+
+● The variables I used don't match the actual names. Let me fix the CSS to use
+  the correct variable names:
+
+● Update(static\css\style.css)
+  ⎿  Added 8 lines, removed 8 lines
+      756  .date-filter-group label {                                    
+      757      font-size: 0.75rem;                                       
+      758      font-weight: 600;                                         
+      759 -    color: var(--text-muted);                                 
+      759 +    color: var(--ink-muted);                                  
+      760      text-transform: uppercase;                                
+      761      letter-spacing: 0.05em;                                   
+      762  }                                                             
+     ...
+      765      padding: 0.45rem 0.75rem;                                 
+      766      border: 1px solid var(--border);                          
+      767      border-radius: var(--radius-sm);                          
+      768 -    background: var(--paper-bg);                              
+      769 -    color: var(--text-primary);                               
+      768 +    background: var(--paper);                                 
+      769 +    color: var(--ink);                                        
+      770      font-family: var(--font-body);                            
+      771      font-size: 0.9rem;                                        
+      772  }                                                             
+      773                                                                
+      774  .date-filter-group input[type="date"]:focus {                 
+      775      outline: none;                                            
+      776 -    border-color: var(--color-accent);                        
+      776 +    border-color: var(--accent);                              
+      777  }                                                             
+      778                                                                
+      779  .filter-btn {                                                 
+      780      padding: 0.48rem 1.25rem;                                 
+      781 -    background: var(--color-accent);                          
+      782 -    color: var(--color-on-accent, #fff);                      
+      781 +    background: var(--accent);                                
+      782 +    color: #fff;                                              
+      783      border: none;                                             
+      784      border-radius: var(--radius-sm);                          
+      785      font-family: var(--font-body);                            
+     ...
+      794                                                                
+      795  .filter-clear {                                               
+      796      font-size: 0.85rem;                                       
+      797 -    color: var(--text-muted);                                 
+      797 +    color: var(--ink-muted);                                  
+      798      text-decoration: none;                                    
+      799      align-self: center;                                       
+      800  }                                                             
+      801                                                                
+      802  .filter-clear:hover {                                         
+      803 -    color: var(--text-primary);                               
+      803 +    color: var(--ink);                                        
+      804  }                                                             
+      805                                                                
+      806  .stats-row {                                                  
+
+● Now the profile page also needs a gap between the filter and the stats row.
+  Let me check how the profile page layout is structured:
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● The profile page already uses display: flex; flex-direction: column; gap: 
+  1.25rem — the filter form will naturally get spacing. All four files are done.
+  Let me do a quick sanity check by running the app:
+
+● Skill(verify)
+  ⎿  Successfully loaded skill
+
+  Listed 1 directory, ran 1 shell command (ctrl+o to expand)
+
+● No matching verifier. I'll cold-start the Flask server and drive it via curl +
+  browser checks.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Background command "Start Flask dev server in background" completed (exit code 0)
+
+● Server is up. Now log in as the demo user and get a session cookie, then drive
+  the profile page:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● On Windows /tmp doesn't exist — let me use a proper temp path:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Filter is working. Let me now probe edge cases — invalid range and a range
+  with no results:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All cases work. Kill the server:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● ---
+  Verification: Date range filter on profile page
+
+  Verdict: PASS
+
+  Claim: Visiting /profile?from=YYYY-MM-DD&to=YYYY-MM-DD filters the
+  transactions table, summary stats, and category breakdown to the given date
+  window. Invalid ranges show a flash error. Missing params show all-time data.
+
+  Method: Cold-start Flask dev server, logged in as demo user with session
+  cookie, drove the /profile route directly via curl.
+
+  Steps
+
+  1. ✅ GET /profile (no params) → all 8 transactions shown, total ₹246.25, top
+  category Bills — no regression
+  2. ✅ GET /profile?from=2026-05-01&to=2026-05-07 → 4 transactions, total
+  ₹152.50, inputs pre-filled with submitted dates, Clear link present
+  3. ✅ Category breakdown also filtered to the 4-expense window (Bills ₹80,
+  Transport ₹35, Health ₹25, Food ₹12.50)
+  4. 🔍 GET /profile?from=2026-05-10&to=2026-05-01 (from > to) → flash error
+  "From date must be on or before To date", page shows all-time stats (₹246.25
+  / 8), no filter applied
+  5. 🔍 GET /profile?from=2020-01-01&to=2020-01-31 (no matching expenses) →
+  stats show ₹0.00 / 0 / —, both tables show "No transactions yet." / "No data
+  yet." empty states
+
+  Findings
+
+  - All 7 definition-of-done items confirmed passing.
+  - 🔍 Empty params (from=&to=) weren't explicitly tested but the route strips
+  them to "" then converts to None, so the fallback path is hit — same as no
+  params.
+
+✻ Sautéed for 2m 11s
+
+※ recap: Date filter for the profile page is fully implemented and verified. Next step is committing the changes. (disable recaps in /config)
+
+❯ /test-feature 06-date-filter-profile                                          
+
+● Starting the testing pipeline — invoking the test writer first.
+
+● spendly-test-writer(Write tests for date filter feature)
+  ⎿  Done (9 tool uses · 21.0k tokens · 2m 19s)
+  (ctrl+o to expand)
+
+● Test file is written. Now invoking the test runner.
+
+● spendly-test-runner(Run date filter tests)
+  ⎿  Done (13 tool uses · 24.6k tokens · 1m 8s)
+  (ctrl+o to expand)
+● ---
+  Testing Pipeline Report — 06-date-filter-profile
+
+  Step 1 — Tests Written
+
+  ┌─────────────────────────────────────────────┬────────────────────────────┐
+  │                    Test                     │      Spec Requirement      │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │                                             │ Auth guard — unauthed GET  │
+  │ test_unauthenticated_redirect               │ /profile redirects to      │
+  │                                             │ /login                     │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_unauthenticated_with_params_redirect   │ Auth guard — date params   │
+  │                                             │ don't bypass session check │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_no_params_returns_200                  │ No-params baseline returns │
+  │                                             │  200                       │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_no_params_shows_all_transactions       │ All transactions shown     │
+  │                                             │ when no filter             │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_no_params_shows_all_time_stats         │ Stats reflect all-time     │
+  │                                             │ totals when unfiltered     │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_no_params_shows_all_categories         │ Category breakdown shows   │
+  │                                             │ all categories unfiltered  │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_filter_form_uses_get_method            │ Filter form must use       │
+  │                                             │ method="get"               │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_valid_range_filters_transactions       │ Valid range shows only     │
+  │                                             │ matching transactions      │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_valid_range_boundary_inclusive         │ Boundary dates are         │
+  │                                             │ inclusive                  │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_single_day_filter                      │ Single-day range isolates  │
+  │                                             │ exactly one expense        │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_filtered_stats_total                   │ Summary stats total        │
+  │                                             │ reflects filtered range    │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_filtered_stats_count                   │ Transaction count reflects │
+  │                                             │  filtered range            │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_filtered_stats_top_category            │ Top category reflects      │
+  │                                             │ filtered range             │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_all_time_total_absent_when_filtered    │ All-time total doesn't     │
+  │                                             │ appear when filtered       │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_filtered_category_breakdown            │ Category breakdown         │
+  │                                             │ reflects filtered range    │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_excluded_category_absent_when_filtered │ Excluded categories not    │
+  │                                             │ shown when filtered        │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_date_inputs_prefilled                  │ Inputs retain submitted    │
+  │                                             │ values after filtering     │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_invalid_range_flash_error              │ from > to shows flash      │
+  │                                             │ error (parametrized)       │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_invalid_range_shows_all_time_data      │ Invalid range falls back   │
+  │                                             │ to all-time data           │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_empty_range_empty_state_transactions   │ No-match range shows       │
+  │                                             │ transactions empty state   │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_empty_range_empty_state_breakdown      │ No-match range shows       │
+  │                                             │ breakdown empty state      │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_empty_range_zero_stats                 │ No-match range shows 0     │
+  │                                             │ total / 0 count            │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_partial_params_only_from               │ Only from param falls back │
+  │                                             │  to all-time               │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_partial_params_only_to                 │ Only to param falls back   │
+  │                                             │ to all-time                │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ test_empty_string_params                    │ Empty string params fall   │
+  │                                             │ back to all-time           │
+  ├─────────────────────────────────────────────┼────────────────────────────┤
+  │ (+ 10 more parametrized variants)           │ Covering boundary dates,   │
+  │                                             │ category presence, etc.    │
+  └─────────────────────────────────────────────┴────────────────────────────┘
+
+  Step 2 — Test Results
+
+  ┌────────┬───────┐
+  │ Metric │ Count │
+  ├────────┼───────┤
+  │ Total  │ 35    │
+  ├────────┼───────┤
+  │ Passed │ 35    │
+  ├────────┼───────┤
+  │ Failed │ 0     │
+  ├────────┼───────┤
+  │ Errors │ 0     │
+  └────────┴───────┘
+
+  Verdict
+
+  ✅ Ready for code review — all 35 tests pass. No failures or errors.
+
+✻ Crunched for 3m 13s
+
+❯ /code-review-feature 06-date-filter-profile                                   
+
+● Running pre-flight diff check first.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Diff collected. Launching both reviewers in parallel now.
+
+● 2 agents finished (ctrl+o to expand)
+   ├ spendly-security-reviewer (Security review of date filter feature) · 0 tool uses
+   │ ⎿  Done
+   └ spendly-quality-reviewer (Quality review of date filter feature) · 3 tool uses · 12.6k tokens
+     ⎿  Done
+
+● ---
+  Code Review Report — 06-date-filter-profile
+
+  ---
+  Security Findings
+
+  [Medium] Date inputs passed to SQL without format validation
+  database/queries.py — all three query functions
+
+  Queries are correctly parameterized (no injection risk), but from_date and
+  to_date are never validated as actual dates before reaching the DB. Non-date
+  strings like "9999-99-99" or a 5,000-character value produce nonsensical
+  results and get echoed back into the template. Fix: add a regex guard in
+  app.py before any query call:
+
+  DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+  if from_date and not DATE_RE.match(from_date): from_date = ""
+  if to_date and not DATE_RE.match(to_date):     to_date = ""
+
+  [Medium] Unvalidated preset value reflected into template
+  app.py line 145
+
+  preset is passed straight from the query string into the template with no
+  allowlist check. Jinja2 auto-escaping protects against XSS in {{ }} contexts
+  today, but the value is also adjacent to a <script> block on the same page — a
+  risky pattern to let grow. Fix: restrict to known values:
+
+  VALID_PRESETS = {"month", "3months", "6months"}
+  if preset not in VALID_PRESETS:
+      preset = ""
+
+  ---
+  Quality Findings
+
+  [CHANGES REQUESTED] Query duplication across three functions
+  database/queries.py
+
+  All three functions repeat the same if from_date and to_date: ... else: ...
+  branching pattern. A small helper eliminates the duplication:
+
+  def _date_filter(from_date, to_date):
+      if from_date and to_date:
+          return "AND date BETWEEN ? AND ?", (from_date, to_date)
+      return "", ()
+
+  Each query then becomes one clean path using (user_id, *params, ...).
+
+  [APPROVED WITH SUGGESTIONS] Inconsistent keyword argument style in app.py
+  app.py line 153 — get_recent_transactions uses from_date=, the other two calls
+  use positional. Use keyword args consistently across all three calls.
+
+  [APPROVED WITH SUGGESTIONS] Inline <script> mid-template
+  templates/profile.html — CLAUDE.md says JS belongs in static/js/main.js. Move
+  applyPreset there (it's self-contained).
+
+  [APPROVED WITH SUGGESTIONS] preset not validated for active-button logic
+  app.py line 145 — covered by the security fix above; same change resolves
+  this.
+
+  [APPROVED WITH SUGGESTIONS] Category bar uses category_totals[0][1] inside 
+  loop
+  templates/profile.html line 133 — pull max out before the loop with {% set 
+  max_amt = category_totals[0][1] %} to avoid fragile index access on every
+  iteration.
+
+  [APPROVED WITH SUGGESTIONS] Two DB round-trips in get_summary_stats
+  database/queries.py — total_spent and top_category can be fetched in a single
+  query using a correlated subquery. Not blocking, but a good habit.
+
+  ---
+  Combined Action Plan
+
+  1. [Medium Security] Add DATE_RE validation for from_date and to_date in the
+  profile route before any DB call
+  2. [Medium Security + Quality] Add VALID_PRESETS allowlist for preset in the
+  profile route
+  3. [CHANGES REQUESTED] Extract _date_filter helper in queries.py and collapse
+  the if/else duplication in all three query functions
+  4. [Suggestion] Standardize all three query calls in app.py to use keyword
+  arguments
+  5. [Suggestion] Move applyPreset JS to static/js/main.js
+  6. [Suggestion] Replace category_totals[0][1] loop access with a {% set 
+  max_amt %} pre-assignment
+  7. [Suggestion] Combine the two queries in get_summary_stats into one
+
+  ---
+  Overall Verdict
+
+  CHANGES REQUESTED — items 1–3 above must be addressed before committing. Items
+  4–7 can be done now or folded into a future step.
+
+  ---
+  Do you want me to implement the action plan now?
+
+✻ Worked for 1m 57s
+
+❯ yes                                                                           
+
+● Starting with the must-fix items first, then the suggestions.
+
+  Read 3 files (ctrl+o to expand)
+
+● Now I'll apply all changes. Starting with queries.py (extract helper +
+  collapse duplication + combine summary stats query), then app.py (date
+  validation + preset allowlist + keyword args), then template (move script, fix
+  max_amt).
+
+● Write(database\queries.py)
+  ⎿  Added 27 lines, removed 49 lines
+       1  from database.db import get_db                                 
+       2                                                                 
+       3                                                                 
+       4 +def _date_filter(from_date, to_date):                          
+       5 +    if from_date and to_date:                                  
+       6 +        return "AND date BETWEEN ? AND ?", (from_date,         
+         +to_date)                                                       
+       7 +    return "", ()                                              
+       8 +                                                               
+       9 +                                                               
+      10  def get_user_by_id(user_id):                                   
+      11      conn = get_db()                                            
+      12      try:                                                       
+     ...
+      11                                                                 
+      12                                                                 
+      13  def get_recent_transactions(user_id, limit=10, from_date=None, 
+           to_date=None):                                                
+      14 +    clause, params = _date_filter(from_date, to_date)          
+      15      conn = get_db()                                            
+      16      try:                                                       
+      17 -        if from_date and to_date:                              
+      18 -            rows = conn.execute(                               
+      19 -                "SELECT date, description, category, amount    
+         -FROM expenses "                                                
+      20 -                "WHERE user_id = ? AND date BETWEEN ? AND ? "  
+      21 -                "ORDER BY date DESC, id DESC LIMIT ?",         
+      22 -                (user_id, from_date, to_date, limit),          
+      23 -            ).fetchall()                                       
+      24 -        else:                                                  
+      25 -            rows = conn.execute(                               
+      26 -                "SELECT date, description, category, amount    
+         -FROM expenses "                                                
+      27 -                "WHERE user_id = ? ORDER BY date DESC, id DESC 
+         - LIMIT ?",                                                     
+      28 -                (user_id, limit),                              
+      29 -            ).fetchall()                                       
+      17 +        rows = conn.execute(                                   
+      18 +            f"SELECT date, description, category, amount FROM  
+         +expenses "                                                     
+      19 +            f"WHERE user_id = ? {clause} ORDER BY date DESC,   
+         +id DESC LIMIT ?",                                              
+      20 +            (user_id, *params, limit),                         
+      21 +        ).fetchall()                                           
+      22          return [dict(r) for r in rows]                         
+      23      finally:                                                   
+      24          conn.close()                                           
+      25                                                                 
+      26                                                                 
+      27  def get_summary_stats(user_id, from_date=None, to_date=None):  
+      28 +    clause, params = _date_filter(from_date, to_date)          
+      29      conn = get_db()                                            
+      30      try:                                                       
+      31 -        if from_date and to_date:                              
+      32 -            row = conn.execute(                                
+      33 -                "SELECT COALESCE(SUM(amount), 0) AS            
+         -total_spent, COUNT(*) AS transaction_count "                   
+      34 -                "FROM expenses WHERE user_id = ? AND date      
+         -BETWEEN ? AND ?",                                              
+      35 -                (user_id, from_date, to_date),                 
+      36 -            ).fetchone()                                       
+      37 -            top = conn.execute(                                
+      38 -                "SELECT category FROM expenses WHERE user_id = 
+         - ? AND date BETWEEN ? AND ? "                                  
+      39 -                "GROUP BY category ORDER BY SUM(amount) DESC   
+         -LIMIT 1",                                                      
+      40 -                (user_id, from_date, to_date),                 
+      41 -            ).fetchone()                                       
+      42 -        else:                                                  
+      43 -            row = conn.execute(                                
+      44 -                "SELECT COALESCE(SUM(amount), 0) AS            
+         -total_spent, COUNT(*) AS transaction_count "                   
+      45 -                "FROM expenses WHERE user_id = ?",             
+      46 -                (user_id,),                                    
+      47 -            ).fetchone()                                       
+      48 -            top = conn.execute(                                
+      49 -                "SELECT category FROM expenses WHERE user_id = 
+         - ? "                                                           
+      50 -                "GROUP BY category ORDER BY SUM(amount) DESC   
+         -LIMIT 1",                                                      
+      51 -                (user_id,),                                    
+      52 -            ).fetchone()                                       
+      31 +        row = conn.execute(                                    
+      32 +            f"SELECT COALESCE(SUM(amount), 0) AS total_spent,  
+         +COUNT(*) AS transaction_count, "                               
+      33 +            f"(SELECT category FROM expenses WHERE user_id = ? 
+         + {clause} "                                                    
+      34 +            f"GROUP BY category ORDER BY SUM(amount) DESC      
+         +LIMIT 1) AS top_category "                                     
+      35 +            f"FROM expenses WHERE user_id = ? {clause}",       
+      36 +            (user_id, *params, user_id, *params),              
+      37 +        ).fetchone()                                           
+      38          return {                                               
+      39              "total_spent": row["total_spent"],                 
+      40              "transaction_count": row["transaction_count"],     
+      41 -            "top_category": top["category"] if top else "—",   
+      41 +            "top_category": row["top_category"] or "—",        
+      42          }                                                      
+      43      finally:                                                   
+      44          conn.close()                                           
+      45                                                                 
+      46                                                                 
+      47  def get_category_breakdown(user_id, from_date=None,            
+          to_date=None):                                                 
+      48 +    clause, params = _date_filter(from_date, to_date)          
+      49      conn = get_db()                                            
+      50      try:                                                       
+      51 -        if from_date and to_date:                              
+      52 -            rows = conn.execute(                               
+      53 -                "SELECT category, SUM(amount) AS total FROM    
+         -expenses "                                                     
+      54 -                "WHERE user_id = ? AND date BETWEEN ? AND ? "  
+      55 -                "GROUP BY category ORDER BY total DESC",       
+      56 -                (user_id, from_date, to_date),                 
+      57 -            ).fetchall()                                       
+      58 -        else:                                                  
+      59 -            rows = conn.execute(                               
+      60 -                "SELECT category, SUM(amount) AS total FROM    
+         -expenses "                                                     
+      61 -                "WHERE user_id = ? GROUP BY category ORDER BY  
+         -total DESC",                                                   
+      62 -                (user_id,),                                    
+      63 -            ).fetchall()                                       
+      51 +        rows = conn.execute(                                   
+      52 +            f"SELECT category, SUM(amount) AS total FROM       
+         +expenses "                                                     
+      53 +            f"WHERE user_id = ? {clause} GROUP BY category     
+         +ORDER BY total DESC",                                          
+      54 +            (user_id, *params),                                
+      55 +        ).fetchall()                                           
+      56          return [(r["category"], r["total"]) for r in rows]     
+      57      finally:                                                   
+      58          conn.close()                                           
+
+● Now update app.py — add re import, date validation, preset allowlist, and
+  consistent keyword args:
+
+● Update(app.py)
+  ⎿  Added 1 line
+      1 +import re                                                       
+      2  import sqlite3                                                  
+      3  from datetime import datetime                                   
+      4  from flask import Flask, render_template, request, flash,       
+         redirect, url_for, abort, session                               
+
+● Update(app.py)
+  ⎿  Added 10 lines, removed 2 lines
+      141          return redirect(url_for("login"))                     
+      142      uid = session["user_id"]                                  
+      143                                                                
+      144 +    _date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")             
+      145      from_date = request.args.get("from", "").strip()          
+      146      to_date = request.args.get("to", "").strip()              
+      147      preset = request.args.get("preset", "").strip()           
+      148                                                                
+      149 +    if from_date and not _date_re.match(from_date):           
+      150 +        from_date = ""                                        
+      151 +    if to_date and not _date_re.match(to_date):               
+      152 +        to_date = ""                                          
+      153 +    if preset not in {"month", "3months", "6months"}:         
+      154 +        preset = ""                                           
+      155 +                                                              
+      156      if from_date and to_date and from_date > to_date:         
+      157          flash("'From' date must be on or before 'To' date.",  
+           "error")                                                      
+      158          from_date = to_date = ""                              
+      159                                                                
+      160      user = get_user_by_id(uid)                                
+      161 -    stats = get_summary_stats(uid, from_date or None, to_date 
+          - or None)                                                     
+      161 +    stats = get_summary_stats(uid, from_date=from_date        
+          + or None, to_date=to_date or None)                            
+      162      expenses = get_recent_transactions(uid,                   
+           from_date=from_date or None, to_date=to_date or None)         
+      163 -    category_totals = get_category_breakdown(uid, from_date   
+          - or None, to_date or None)                                    
+      163 +    category_totals = get_category_breakdown(uid, from_date   
+          +=from_date or None, to_date=to_date or None)                  
+      164      return render_template(                                   
+      165          "profile.html",                                       
+      166          user=user,                                            
+
+● Now move the applyPreset JS to main.js and remove it from the template:
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(static\js\main.js)
+  ⎿  Added 29 lines, removed 1 line
+       1 -// main.js — students will add JavaScript here as features are 
+         - built                                                         
+       1 +function applyPreset(preset) {                                 
+       2 +    const today = new Date();                                  
+       3 +    const pad = n => String(n).padStart(2, '0');               
+       4 +    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1) 
+         +}-${pad(d.getDate())}`;                                        
+       5 +    const fromInput = document.getElementById('from');         
+       6 +    const toInput = document.getElementById('to');             
+       7 +    const presetInput =                                        
+         +document.getElementById('preset-input');                       
+       8 +                                                               
+       9 +    if (preset === 'all') {                                    
+      10 +        fromInput.value = '';                                  
+      11 +        toInput.value = '';                                    
+      12 +        presetInput.value = '';                                
+      13 +    } else {                                                   
+      14 +        const from = new Date(today);                          
+      15 +        if (preset === 'month') {                              
+      16 +            from.setDate(1);                                   
+      17 +            presetInput.value = 'month';                       
+      18 +        } else if (preset === '3months') {                     
+      19 +            from.setMonth(from.getMonth() - 3);                
+      20 +            presetInput.value = '3months';                     
+      21 +        } else if (preset === '6months') {                     
+      22 +            from.setMonth(from.getMonth() - 6);                
+      23 +            presetInput.value = '6months';                     
+      24 +        }                                                      
+      25 +        fromInput.value = fmt(from);                           
+      26 +        toInput.value = fmt(today);                            
+      27 +    }                                                          
+      28 +    document.getElementById('filter-form').submit();           
+      29 +}                                                              
+
+● Now remove the inline <script> block from the template and fix the max_amt
+  pattern:
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(templates\profile.html)
+  ⎿  Removed 33 lines
+      37          </div>                                                 
+      38      </form>                                                    
+      39                                                                 
+      40 -    <script>                                                   
+      41 -    function applyPreset(preset) {                             
+      42 -        const today = new Date();                              
+      43 -        const pad = n => String(n).padStart(2, '0');           
+      44 -        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth( 
+         -)+1)}-${pad(d.getDate())}`;                                    
+      45 -        const fromInput = document.getElementById('from');     
+      46 -        const toInput = document.getElementById('to');         
+      47 -        const presetInput =                                    
+         -document.getElementById('preset-input');                       
+      48 -                                                               
+      49 -        if (preset === 'all') {                                
+      50 -            fromInput.value = '';                              
+      51 -            toInput.value = '';                                
+      52 -            presetInput.value = '';                            
+      53 -        } else {                                               
+      54 -            const to = new Date(today);                        
+      55 -            const from = new Date(today);                      
+      56 -            if (preset === 'month') {                          
+      57 -                from.setDate(1);                               
+      58 -                presetInput.value = 'month';                   
+      59 -            } else if (preset === '3months') {                 
+      60 -                from.setMonth(from.getMonth() - 3);            
+      61 -                presetInput.value = '3months';                 
+      62 -            } else if (preset === '6months') {                 
+      63 -                from.setMonth(from.getMonth() - 6);            
+      64 -                presetInput.value = '6months';                 
+      65 -            }                                                  
+      66 -            fromInput.value = fmt(from);                       
+      67 -            toInput.value = fmt(to);                           
+      68 -        }                                                      
+      69 -        document.getElementById('filter-form').submit();       
+      70 -    }                                                          
+      71 -    </script>                                                  
+      72 -                                                               
+      40      <!-- Stats row -->                                         
+      41      <div class="stats-row">                                    
+      42          <div class="stat-card">                                
+
+● Now fix the max_amt pattern in the category breakdown:
+
+● Update(templates\profile.html)
+  ⎿  Added 2 lines, removed 3 lines
+      88      <div class="breakdown-card">                               
+      89          <h3>By Category</h3>                                   
+      90          {% if category_totals %}                               
+      91 +        {% set max_amt = category_totals[0][1] %}              
+      92          <div class="breakdown-list">                           
+      93              {% for cat, amt in category_totals %}              
+      94              <div class="breakdown-row">                        
+     ...
+       96                      <span class="breakdown-amount">₹{{ amt |  
+           inr }}</span>                                                 
+       97                  </div>                                        
+       98                  <div class="breakdown-bar-track">             
+       99 -                    {% if total %}                            
+      100 -                    <div class="breakdown-bar {{ cat | lower  
+          -}}" style="width: {{ (amt / category_totals[0][1] * 100) |    
+          -round(1) }}%"></div>                                          
+      101 -                    {% endif %}                               
+       99 +                    <div class="breakdown-bar {{ cat | lower  
+          +}}" style="width: {{ (amt / max_amt * 100) | round(1)         
+          +}}%"></div>                                                   
+      100                  </div>                                        
+      101              </div>                                            
+      102              {% endfor %}                                      
+
+● Now verify main.js is loaded in base.html so applyPreset is available:
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● main.js is already loaded globally. Let me do a quick smoke test to confirm
+  nothing broke:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All 35 tests still pass. Here's a summary of every change made:
+
+  database/queries.py
+  - Extracted _date_filter(from_date, to_date) helper — one place for the
+  branching logic
+  - All three query functions now use a single code path with the helper
+  - get_summary_stats combined into one query (correlated subquery for
+  top_category) — one DB round-trip instead of two
+
+  app.py
+  - Added re import
+  - Date format validated with ^\d{4}-\d{2}-\d{2}$ before reaching the DB
+  - preset restricted to {"month", "3months", "6months"} allowlist
+  - All three query calls now use consistent keyword arguments
+
+  static/js/main.js
+  - applyPreset moved here from the inline <script> block; also fixed the unused
+  to variable (now uses today directly)
+
+  templates/profile.html
+  - Removed inline <script> block
+  - Category breakdown now uses {% set max_amt = category_totals[0][1] %} before
+  the loop instead of index access on every iteration; also dropped the
+  redundant {% if total %} guard since max_amt is only set when category_totals
+  is non-empty
+
+✻ Sautéed for 1m 16s
+! git add .                                                                     
+  ⎿  warning: in the working copy of '.claude/settings.local.json', LF will
+      be replaced by CRLF the next time Git touches it
+     warning: in the working copy of 'database/queries.py', LF will be repl
+     … +7 lines (ctrl+o to expand)
+
+! git commit -m 'add date filter to profile page'                               
+  ⎿  [feature/date-filter-profile d95487e] add date filter to profile page
+      8 files changed, 654 insertions(+), 26 deletions(-)
+      create mode 100644 .claude/specs/06-date-filter-profile.md
+      create mode 100644 tests/test_06-date-filter-profile.py
+
+! git branch                                                                    
+  ⎿  * feature/date-filter-profile
+       main
+
+! git push origin feature/date-filter-profile                                   
+  ⎿  remote:
+     remote: Create a pull request for 'feature/date-filter-profile' on Git
+     Hub by visiting:
+     … +6 lines (ctrl+o to expand)
+
+! git checkout main                                                             
+  ⎿  Switched to branch 'main'
+     Your branch is ahead of 'origin/main' by 1 commit.
+       (use "git push" to publish your local commits)
+
+! git branch -D feature/date-filter-profile                                     
+  ⎿  Deleted branch feature/date-filter-profile (was d95487e).
+
+! git pull origin main                                                          
+  ⎿  From https://github.com/Atharv-Agrawal/spendly
+      * branch            main       -> FETCH_HEAD
+        aa53b1c..2c19190  main       -> origin/main
+     Updating 538e784..2c19190
+     Fast-forward
+      .claude/settings.local.json             |   4 +-
+      .claude/specs/06-date-filter-profile.md |  51 ++++
+      app.py                                  |  27 ++-
+      database/queries.py                     |  42 ++--
+      static/css/style.css                    |  94 ++++++++
+      static/js/main.js                       |  30 ++-
+      templates/profile.html                  |  26 +-
+      tests/test_06-date-filter-profile.py    | 406
+     ++++++++++++++++++++++++++++++++
+      8 files changed, 654 insertions(+), 26 deletions(-)
+      create mode 100644 .claude/specs/06-date-filter-profile.md
+      create mode 100644 tests/test_06-date-filter-profile.py
+
+※ recap: Implemented the date filter feature on the profile page and addressed all code review feedback (security validation, query refactor, JS relocation). Tests pass (35/35); next step is to commit these changes. (disable recaps in /config)
