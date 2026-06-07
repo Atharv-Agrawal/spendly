@@ -7,7 +7,36 @@
       "Bash(python -m pytest tests/test_backend_connection.py -v)",
       "Bash(python -c ' *)",
       "Bash(powershell *)",
-      "Bash(python -m pytest tests/test_06-date-filter-profile.py -v --tb=short)"
+      "Bash(python -m pytest tests/test_06-date-filter-profile.py -v --tb=short)",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__whoami",
+      "Bash(curl -s -b cookies.txt http://localhost:5001/analytics -o /dev/null -w \"redirect-target check: \")",
+      "Bash(curl -sL -b cookies.txt http://localhost:5001/analytics)",
+      "Bash(sqlite3 --version)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://localhost:5001/register -o reg.html)",
+      "Bash(rm -f cookies.txt)",
+      "Bash(curl -s -c cookies.txt -X POST http://localhost:5001/register -d \"name=Test User2&email=tau2@example.com&password=Password123&confirm_password=Password123\" -o reg2.html -w \"register: %{http_code}\\\\n\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L http://localhost:5001/analytics -o out2.html -w \"analytics: %{http_code}\\\\n\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://localhost:5001/login -d \"email=tau2@example.com&password=Password123\" -o /dev/null -w \"login: %{http_code}\\\\n\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L http://localhost:5001/analytics -o out3.html -w \"analytics: %{http_code}\\\\n\")",
+      "Bash(rm -f cookies.txt reg.html reg2.html out.html out2.html out3.html)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(python -m json.tool)",
+      "PowerShell(Get-Content \"$env:USERPROFILE\\\\.claude.json\" | Select-Object -First 50)",
+      "Bash(npx -y @executeautomation/database-server \"C:\\\\Users\\\\athar\\\\OneDrive\\\\Desktop\\\\expense-tracker\\\\spendly.db\")",
+      "PowerShell(winget install *)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); node -v; npx -v)",
+      "Bash(python *)",
+      "Bash(where npx *)",
+      "Bash(where node *)",
+      "Bash(npx -y @executeautomation/database-server --help)",
+      "PowerShell(npx -y @executeautomation/database-server --help 2>&1)",
+      "Bash(git diff *)",
+      "Read(//tmp/**)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "github"
+  ]
 }

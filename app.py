@@ -4,7 +4,9 @@ from datetime import datetime
 from flask import Flask, render_template, request, flash, redirect, url_for, abort, session
 from werkzeug.security import check_password_hash
 from database.db import init_db, seed_db, create_user, get_user_by_email
-from database.queries import get_user_by_id, get_summary_stats, get_recent_transactions, get_category_breakdown
+from database.queries import get_user_by_id, get_summary_stats, get_recent_transactions, get_category_breakdown, create_expense
+
+VALID_CATEGORIES = {"Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"}
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -175,9 +177,53 @@ def profile():
     )
 
 
-@app.route("/expenses/add")
+@app.route("/analytics")
+def analytics():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    return render_template("analytics.html")
+
+
+def _render_expense_form():
+    return render_template("expense_form.html", categories=sorted(VALID_CATEGORIES))
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    uid = session["user_id"]
+
+    if request.method == "GET":
+        return _render_expense_form()
+
+    amount_raw = request.form.get("amount", "").strip()
+    category = request.form.get("category", "").strip()
+    date = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    try:
+        amount = float(amount_raw)
+    except ValueError:
+        amount = None
+
+    if amount is None or amount <= 0:
+        flash("Enter a valid amount greater than zero.", "error")
+        return _render_expense_form()
+
+    if category not in VALID_CATEGORIES:
+        flash("Select a valid category.", "error")
+        return _render_expense_form()
+
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        flash("Enter a valid date.", "error")
+        return _render_expense_form()
+
+    create_expense(uid, amount, category, date, description or None)
+    flash("Expense added!", "success")
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/edit")
