@@ -702,6 +702,10 @@ a { color: inherit; text-decoration: none; }
     gap: 1.5rem;
 }
 
+.profile-card .btn-primary {
+    margin-left: auto;
+}
+
 .avatar {
     width: 72px;
     height: 72px;

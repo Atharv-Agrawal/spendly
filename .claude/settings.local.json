@@ -30,7 +30,9 @@
       "Bash(where npx *)",
       "Bash(where node *)",
       "Bash(npx -y @executeautomation/database-server --help)",
-      "PowerShell(npx -y @executeautomation/database-server --help 2>&1)"
+      "PowerShell(npx -y @executeautomation/database-server --help 2>&1)",
+      "Bash(git diff *)",
+      "Read(//tmp/**)"
     ]
   },
   "enableAllProjectMcpServers": true,
