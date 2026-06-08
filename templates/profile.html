@@ -66,6 +66,7 @@
                     <th>Description</th>
                     <th>Category</th>
                     <th class="th-right">Amount</th>
+                    <th class="th-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -77,6 +78,9 @@
                         <span class="category-badge {{ e.category | lower }}">{{ e.category }}</span>
                     </td>
                     <td class="amount">₹{{ e.amount | inr }}</td>
+                    <td class="th-right">
+                        <a href="{{ url_for('edit_expense', id=e.id) }}" class="tx-action-link">Edit</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
