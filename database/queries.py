@@ -21,6 +21,29 @@ def create_expense(user_id, amount, category, date, description):
         conn.close()
 
 
+def get_expense_by_id(expense_id, user_id):
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_expense(expense_id, user_id, amount, category, date, description):
+    conn = get_db()
+    try:
+        conn.execute(
+            "UPDATE expenses SET amount = ?, category = ?, date = ?, description = ? WHERE id = ? AND user_id = ?",
+            (amount, category, date, description, expense_id, user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_user_by_id(user_id):
     conn = get_db()
     try:
@@ -35,7 +58,7 @@ def get_recent_transactions(user_id, limit=10, from_date=None, to_date=None):
     conn = get_db()
     try:
         rows = conn.execute(
-            f"SELECT date, description, category, amount FROM expenses "
+            f"SELECT id, date, description, category, amount FROM expenses "
             f"WHERE user_id = ? {clause} ORDER BY date DESC, id DESC LIMIT ?",
             (user_id, *params, limit),
         ).fetchall()

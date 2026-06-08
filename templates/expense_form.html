@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Add expense — Spendly{% endblock %}
+{% block title %}{% if expense %}Edit expense{% else %}Add expense{% endif %} — Spendly{% endblock %}
 
 {% block content %}
 
@@ -8,8 +8,10 @@
     <div class="auth-container">
 
         <div class="auth-header">
-            <h1 class="auth-title">Add an expense</h1>
-            <p class="auth-subtitle">Log a new transaction to keep your records up to date</p>
+            <h1 class="auth-title">{% if expense %}Edit expense{% else %}Add an expense{% endif %}</h1>
+            <p class="auth-subtitle">
+                {% if expense %}Update the details of this transaction{% else %}Log a new transaction to keep your records up to date{% endif %}
+            </p>
         </div>
 
         <div class="auth-card">
@@ -19,33 +21,36 @@
               {% endfor %}
             {% endwith %}
 
-            <form method="post" action="{{ url_for('add_expense') }}">
+            <form method="post" action="{{ action or url_for('add_expense') }}">
                 <div class="form-group">
                     <label for="amount">Amount</label>
                     <input type="number" id="amount" name="amount"
                            class="form-input" placeholder="0.00"
-                           step="0.01" min="0.01" required autofocus>
+                           step="0.01" min="0.01" required autofocus
+                           {% if expense %}value="{{ expense.amount }}"{% endif %}>
                 </div>
                 <div class="form-group">
                     <label for="category">Category</label>
                     <select id="category" name="category" class="form-input" required>
-                        <option value="" disabled selected>Select a category</option>
+                        <option value="" disabled {% if not expense %}selected{% endif %}>Select a category</option>
                         {% for c in categories %}
-                          <option value="{{ c }}">{{ c }}</option>
+                          <option value="{{ c }}" {% if expense and expense.category == c %}selected{% endif %}>{{ c }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="date">Date</label>
                     <input type="date" id="date" name="date"
-                           class="form-input" required>
+                           class="form-input" required
+                           {% if expense %}value="{{ expense.date }}"{% endif %}>
                 </div>
                 <div class="form-group">
                     <label for="description">Description</label>
                     <input type="text" id="description" name="description"
-                           class="form-input" placeholder="Optional notes">
+                           class="form-input" placeholder="Optional notes"
+                           {% if expense %}value="{{ expense.description or '' }}"{% endif %}>
                 </div>
-                <button type="submit" class="btn-submit">Add expense</button>
+                <button type="submit" class="btn-submit">{% if expense %}Save changes{% else %}Add expense{% endif %}</button>
             </form>
         </div>
 
